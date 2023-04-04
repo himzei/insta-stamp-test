@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "insta-stamp-test"
+version = "0.1.0"
+description = ""
+authors = ["조현일 <himzei@gmail.com>"]
+readme = "README.md"
+packages = [{include = "insta_stamp_test"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django-environ = "^0.10.0"
+mssql-django = "^1.2"
+django-mssql-backend = "^2.8.1"
+pyodbc = "^4.0.35"
+django-dotenv = "^1.4.2"
+djangorestframework = "^3.14.0"
+requests = "^2.28.2"
+beautifulsoup4 = "^4.12.0"
+Django = "^3.0"
+django-cors-headers = "^3.14.0"
+pandas = "^1.5.3"
+APScheduler = "^3.10.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
