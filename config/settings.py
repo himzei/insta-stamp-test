@@ -169,6 +169,8 @@ CORS_ORIGIN_WHITELIST = [
     'http://127.0.0.1:3001', 
     'http://localhost:3000',
     'http://localhost:3001',
+    "https://stamp-insta-admin.netlify.app",
+    "https://animated-rolypoly-a81464.netlify.app",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
