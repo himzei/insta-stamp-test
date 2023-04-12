@@ -1,13 +1,65 @@
 import re
 import requests
 import json 
+import csv
+from django.http import HttpResponse
 from rest_framework.views import APIView 
 from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ParseError
+from rest_framework import status
 from bs4 import BeautifulSoup
 from .serializers import InstaStampListSerializer
 from .models import InstaStampList
+from insta_admin.models import InstaKeywords
+from insta_admin.serializers import KeywordsSerializer
 
+
+class RankingList(APIView): 
+    
+    def get(self, request): 
+        data = InstaStampList.objects.all().order_by('-likes_cnt')[:10]
+        serializer = InstaStampListSerializer(
+            data, 
+            many=True,
+        )
+        return Response(serializer.data)
+        
+
+
+class CSVDownloadView(APIView):
+
+    def get(self, request): 
+        data = InstaStampList.objects.all()
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="result.csv"'
+        writer = csv.writer(response)
+
+        writer.writerow([
+            "인스타 아이디", 
+            "전화번호", 
+            "인스타 URL", 
+            "인증시간", 
+            "인증여부", 
+            "좋아요(개)", 
+            "댓글(개)", 
+            "친구소환(명)"
+            ])
+        
+        for row in data: 
+            writer.writerow([
+                row.insta_name, 
+                row.phone, 
+                row.insta_url, 
+                row.created_at, 
+                row.insta_stamp, 
+                row.likes_cnt, 
+                row.comments_cnt, 
+                row.friends_cnt,
+                ])
+
+        
+        return response
+    
 
 class Crawling(APIView): 
     
@@ -16,6 +68,12 @@ class Crawling(APIView):
             return InstaStampList.objects.get(insta_ref=insta_ref)
         except InstaStampList.DoesNotExist:
             raise NotFound
+        
+    def removeComma(self, stringLikes):
+        if ',' or "K" or "M" in stringLikes: 
+            return stringLikes.replace(",","").replace("K", "000").replace("M","000000")
+        else: 
+            return stringLikes
     
     def put(self, request): 
         
@@ -38,10 +96,22 @@ class Crawling(APIView):
 
             # 좋아요, 커멘트 수 크롤링
             data = soup.find("meta", {"name": "description"})["content"]
-            likes = data.split("Likes,")[0].strip()
-            likes = likes.replace(",","")
-            comments = data.split("Comments")[0].split("Likes,")[1].strip()
-            comments = comments.replace(",","")
+
+            if data is None:
+                ParseError("포스팅 된 글이 없습니다.")
+
+            if 'Likes' in data: 
+                likes = data.split("Likes,")[0].strip().split(" ")[-1]
+                comments = data.split("Comments")[0].strip().split(' ')[-1]
+            else: 
+                likes = data.split("likes,")[0].strip().split(" ")[-1]
+                comments = data.split("comments")[0].strip().split(' ')[-1]
+            
+            likes = self.removeComma(likes)
+            comments = self.removeComma(comments)
+            
+            print(likes)
+            print(comments)
 
             serializer = InstaStampListSerializer(
                 self.get_object(insta_ref),
@@ -59,14 +129,20 @@ class Crawling(APIView):
         
         return Response({"ok": "True"})
 
-
-    
+    def check_array_element_match(self, array1, array2):
+        return all(elements in array1 for elements in array2)
+  
     def post(self, request): 
+        
         url = request.data.get("url")
-        print(url)
         stamp = False
 
-        keyword = ["코딩", "스탬프인증"]
+        db_keywords = InstaKeywords.objects.get(pk=1)
+        serializer_keywords = KeywordsSerializer(db_keywords)
+
+        keywords = serializer_keywords.data.get("keywords").split(",")
+        keywords = [element.strip() for element in keywords]
+
         pattern = '#([0-9a-zA-Z가-힣]*)'
         hash_w = re.compile(pattern)
 
@@ -74,12 +150,10 @@ class Crawling(APIView):
         url = f"{stamp_url}?__a=1" # 크롤링할 게시물 URL
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
+                
+        insta_ref = url.split("/p/")[1].split("/")[0]
         
-        if url.split("/p/")[1].split("/")[0]:
-            insta_ref = url.split("/p/")[1].split("/")[0]
-        else: 
-            insta_ref = ""
-        
+
         insta_date = soup.find("script", {"type": "application/ld+json"}).text
         insta_date = json.loads(insta_date)
         insta_date = insta_date["dateCreated"][0:16]
@@ -88,10 +162,14 @@ class Crawling(APIView):
         hashtags = hash_w.findall(data)
 
         userid = data.split("on Instagram")[0].strip()
-      
-        if any(x in hashtags for x in keyword): 
-            stamp = True
+        stamp = self.check_array_element_match(hashtags, keywords)
 
+
+        if stamp == False: 
+            return Response(
+                status=status.HTTP_405_METHOD_NOT_ALLOWED, 
+                )
+        
 
         serializer = InstaStampListSerializer(
             data={
@@ -101,12 +179,13 @@ class Crawling(APIView):
               "insta_stamp": stamp, 
               "insta_ref": insta_ref,
             }, 
-
-
         )
         if serializer.is_valid(): 
             insta_stamp = serializer.save()
-            return Response(InstaStampListSerializer(insta_stamp).data)
+            return Response({
+                "data":InstaStampListSerializer(insta_stamp).data, 
+                "keywords": keywords
+                })
         else: 
             return Response(serializer.errors)
         

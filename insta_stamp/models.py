@@ -1,6 +1,8 @@
 from django.db import models
 
 
+
+
 class InstaStampList(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -13,8 +15,5 @@ class InstaStampList(models.Model):
     likes_cnt = models.IntegerField(default=0, blank=True, null=True)
     comments_cnt = models.IntegerField(default=0, blank=True, null=True)
     friends_cnt = models.IntegerField(default=0, blank=True, null=True)
-
-
-
 
 

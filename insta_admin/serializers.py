@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import InstaStampResult
+from .models import InstaStampResult, InstaKeywords
+
 
 class InstaStampResultSerializer(serializers.ModelSerializer):
     class Meta: 
@@ -10,4 +11,14 @@ class InstaStampResultSerializer(serializers.ModelSerializer):
             "total_likes", 
             "total_comments", 
             "total_friends",
+        )
+
+
+class KeywordsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstaKeywords
+        fields = (
+            "pk",
+            "created_at", 
+            "keywords",
         )

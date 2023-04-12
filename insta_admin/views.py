@@ -1,60 +1,81 @@
+import csv
+import datetime as dt
+from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response 
 from insta_stamp.models import InstaStampList
-from insta_stamp.serializers import InstaStampListSerializer
-from .serializers import InstaStampResultSerializer
-from .models import InstaStampResult
-import requests
-from bs4 import BeautifulSoup
-import re
+from .models import InstaStampResult, InstaKeywords
 from rest_framework.exceptions import NotFound
+from insta_stamp.serializers import InstaStampListSerializer
+from .serializers import InstaStampResultSerializer, KeywordsSerializer
 
 
-def get_object(insta_ref): 
-    try: 
-        return InstaStampList.objects.get(insta_ref=insta_ref)
-    except InstaStampList.DoesNotExist:
-        raise NotFound
 
-def schedule_api():
+class KeywordsUpdate(APIView): 
     
-    all_insta_url = InstaStampList.objects.values_list("insta_url")
-
-    for url in all_insta_url: 
-        
-        response = requests.get(url[0])
-        insta_ref = url[0].split("/p/")[1].split("/")[0]
-
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        dataUser = soup.find("title").text 
-
-        # 친구 소환
-        pattern = '@([0-9a-zA-Z가-힣_]*)'
-        hash_f = re.compile(pattern)
-        friends = hash_f.findall(dataUser)
-        friends = list(filter(None, friends))
-
-        # 좋아요, 커멘트 수 크롤링
-        data = soup.find("meta", {"name": "description"})["content"]
-        likes = data.split("Likes,")[0].strip()
-        likes = likes.replace(",","")
-        comments = data.split("Comments")[0].split("Likes,")[1].strip()
-        comments = comments.replace(",","")
-
-        serializer = InstaStampListSerializer(
-            get_object(insta_ref),
-            data = {
-              "likes_cnt": likes, 
-              "comments_cnt": comments, 
-              "friends_cnt": len(friends),
+    def get_object(self, pk):
+        try: 
+            return InstaKeywords.objects.get(pk=pk)
+        except InstaKeywords.DoesNotExist:
+            raise NotFound
+    
+    def get(self, request): 
+        keywords = InstaKeywords.objects.get(pk=1)
+        serializer = KeywordsSerializer(keywords)
+        return Response({"data": serializer.data, "ok": "True", })
+    
+    def put(self, request):
+        pk = 1
+        keywords = request.data.get("keywords")
+        serializer = KeywordsSerializer(
+            self.get_object(pk),
+            data={
+              "keywords": keywords,
             },
             partial=True,
         )
-
-        if serializer.is_valid(): 
+        if serializer.is_valid():
             serializer.save()
-            
+
+        return Response({"keywords": keywords})     
+    
+
+class ChartView(APIView): 
+    
+    def get(self, request): 
+        data = InstaStampResult.objects.filter(created_at__gte=dt.datetime(2023, 4, 10)).order_by("created_at")[:20]
+        serializer = InstaStampResultSerializer(data, many=True)
+        
+        
+        return Response(serializer.data)
+
+
+class CSVDownloadView(APIView):
+
+    def get(self, request): 
+        data = InstaStampResult.objects.all()
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="result.csv"'
+        writer = csv.writer(response)
+
+        writer.writerow([
+            "작성시간", 
+            "총 인스타 수", 
+            "총 좋아요 수", 
+            "총 댓글 수", 
+            "총 친구소환 수",
+        ])
+
+        for row in data: 
+            writer.writerow([
+                row.created_at, 
+                row.total_insta, 
+                row.total_likes, 
+                row.total_comments, 
+                row.total_friends,
+            ])
+
+        return response
     
 
 class AdminInstaStampList(APIView): 
@@ -66,12 +87,11 @@ class AdminInstaStampList(APIView):
         comments = 0
         likes = 0 
         friends = 0
-        for list in all_insta_stamp: 
-            comments += list.comments_cnt
-            likes += list.likes_cnt
-            friends += list.friends_cnt
+        for insta_list in all_insta_stamp: 
+            comments += insta_list.comments_cnt
+            likes += insta_list.likes_cnt
+            friends += insta_list.friends_cnt
         
-
 
         serializer = InstaStampListSerializer(
             all_insta_stamp, 
@@ -85,7 +105,6 @@ class AdminInstaStampList(APIView):
             "instaRegister": serializer.data} )
 
 class AdminInataStampResult(APIView): 
-    
 
     def get(self, request):
         all_list = InstaStampResult.objects.order_by("-created_at")

@@ -1,19 +1,29 @@
 import re
 import requests
 from bs4 import BeautifulSoup
+from rest_framework.exceptions import NotFound, ParseError
+from rest_framework.response import Response
 from insta_stamp.models import InstaStampList
 from insta_stamp.serializers import InstaStampListSerializer
-from rest_framework.exceptions import NotFound
+from insta_admin.serializers import InstaStampResultSerializer
 
 def get_object(insta_ref): 
     try: 
         return InstaStampList.objects.get(insta_ref=insta_ref)
     except InstaStampList.DoesNotExist:
         raise NotFound
+    
+def removeComma(stringLikes):
+    if ',' or "K" or "M" in stringLikes: 
+        return stringLikes.replace(",","").replace("K", "000").replace("M","000000")
+    else: 
+        return stringLikes
 
 def schedule_api():
     
     all_insta_url = InstaStampList.objects.values_list("insta_url")
+    all_insta_stamp = InstaStampList.objects.all()
+    
 
     for url in all_insta_url: 
         
@@ -31,13 +41,20 @@ def schedule_api():
         friends = list(filter(None, friends))
 
         # 좋아요, 커멘트 수 크롤링
-        data = soup.find("meta", {"name": "description"})
-        likes = data.split("Likes,")[0].strip()
-        likes = likes.replace(",","")
-        comments = data.split("comments")[0].split("likes,")[1]
-        comments = comments.replace(",","")
+        data = soup.find("meta", {"name": "description"})["content"]
 
+        if data is None:
+            ParseError("포스팅 된 글이 없습니다.")
+
+        if 'Likes' in data: 
+            likes = data.split("Likes,")[0].strip().split(" ")[-1]
+            comments = data.split("Comments")[0].strip().split(' ')[-1]
+        else: 
+            likes = data.split("likes,")[0].strip().split(" ")[-1]
+            comments = data.split("comments")[0].strip().split(' ')[-1]
         
+        likes = removeComma(likes)
+        comments = removeComma(comments)
 
         serializer = InstaStampListSerializer(
             get_object(insta_ref),
@@ -51,6 +68,30 @@ def schedule_api():
 
         if serializer.is_valid(): 
             serializer.save()
-            
+
+
+
+    count = len(all_insta_stamp)
+    comments = 0
+    likes = 0
+    friends = 0 
+    for insta_list in all_insta_stamp: 
+        comments += insta_list.comments_cnt
+        likes += insta_list.likes_cnt
+        friends += insta_list.friends_cnt
     
-    return
+
+    serializer = InstaStampResultSerializer(
+        data = {
+            "total_insta": count, 
+            "total_likes": likes, 
+            "total_comments": comments, 
+            "total_friends": friends,
+        }
+    )
+
+    if serializer.is_valid():
+        result = serializer.save()
+        return Response(InstaStampResultSerializer(result).data)        
+    else: 
+        return Response(serializer.errors)
