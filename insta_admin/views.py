@@ -8,7 +8,7 @@ from .models import InstaStampResult, InstaKeywords
 from rest_framework.exceptions import NotFound
 from insta_stamp.serializers import InstaStampListSerializer
 from .serializers import InstaStampResultSerializer, KeywordsSerializer
-
+from django.core.paginator import Paginator
 
 
 class KeywordsUpdate(APIView): 
@@ -81,8 +81,15 @@ class CSVDownloadView(APIView):
 class AdminInstaStampList(APIView): 
     
     def get(self, request): 
+        try: 
+            page = request.query_params.get("page", 1)
+            page = int(page)
+        except ValueError: 
+            page = 1
+
         all_insta_stamp = InstaStampList.objects.all()
-        count = len(all_insta_stamp)
+        page_size = 20
+        count = len(all_insta_stamp) / 2 - 1
 
         comments = 0
         likes = 0 
@@ -92,9 +99,9 @@ class AdminInstaStampList(APIView):
             likes += insta_list.likes_cnt
             friends += insta_list.friends_cnt
         
-
+        paginator = Paginator(all_insta_stamp, page_size, orphans=5)
         serializer = InstaStampListSerializer(
-            all_insta_stamp, 
+            paginator.get_page(page), 
             many=True, 
         )
         return Response({
@@ -107,9 +114,22 @@ class AdminInstaStampList(APIView):
 class AdminInataStampResult(APIView): 
 
     def get(self, request):
+        try: 
+            page = request.query_params.get("page", 1)
+            page = int(page)
+        except ValueError: 
+            page = 1
+
         all_list = InstaStampResult.objects.order_by("-created_at")
-        serializer = InstaStampResultSerializer(all_list, many=True)
-        return Response(serializer.data)
+
+        page_size = 20
+        # 왜 2배수가 잡히는 지 모르겠음
+        total_page = len(all_list) / 2 - 1
+
+        
+        paginator = Paginator(all_list, page_size, orphans=5)
+        serializer = InstaStampResultSerializer(paginator.get_page(page), many=True)
+        return Response({"data": serializer.data, "totalPage": total_page})
     
     def post(self, request): 
         all_insta_stamp = InstaStampList.objects.all()
