@@ -13,6 +13,64 @@ from .models import InstaStampList
 from insta_admin.models import InstaKeywords
 from insta_admin.serializers import KeywordsSerializer
 
+import pandas as pd 
+
+
+class DataForceInsert(APIView): 
+    
+    def get(self, request): 
+
+        file = pd.read_excel(
+            '/Users/himzei/Documents/Github/insta-stamp-test/insta_stamp/insta_list.xlsx', 
+            header=None,
+            sheet_name='Sheet1', 
+            engine='openpyxl'
+        )
+        return Response({"file": file[0]})
+    
+    def post(self, request): 
+        file = pd.read_excel(
+            '/Users/himzei/Documents/Github/insta-stamp-test/insta_stamp/insta_list.xlsx', 
+            header=None,
+            sheet_name='Sheet1', 
+            engine='openpyxl'
+        )
+
+        for url in file[0]: 
+            
+            stamp = False
+
+            url = f"{url}?__a=1" # 크롤링할 게시물 URL
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+                    
+            insta_ref = url.split("/p/")[1].split("/")[0]
+            
+
+            insta_date = soup.find("script", {"type": "application/ld+json"}).text
+            insta_date = json.loads(insta_date)
+            insta_date = insta_date["dateCreated"][0:16]
+
+            data = soup.find("title").text
+
+            userid = data.split("on Instagram")[0].strip()
+
+
+            serializer = InstaStampListSerializer(
+                data={
+                  "insta_url": url,
+                  "insta_name": userid, 
+                  "insta_date": insta_date,
+                  "insta_stamp": stamp, 
+                  "insta_ref": insta_ref,
+                }, 
+            )
+            if serializer.is_valid(): 
+                serializer.save()
+            
+        
+        return Response({"ok": "true"})
+    
 
 class RankingList(APIView): 
     

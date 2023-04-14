@@ -87,9 +87,9 @@ class AdminInstaStampList(APIView):
         except ValueError: 
             page = 1
 
-        all_insta_stamp = InstaStampList.objects.all()
+        all_insta_stamp = InstaStampList.objects.order_by("-created_at")
         page_size = 20
-        count = len(all_insta_stamp) / 2 - 1
+        count = len(all_insta_stamp)
 
         comments = 0
         likes = 0 
@@ -124,7 +124,7 @@ class AdminInataStampResult(APIView):
 
         page_size = 20
         # 왜 2배수가 잡히는 지 모르겠음
-        total_page = len(all_list) / 2 - 1
+        total_page = len(all_list) 
 
         
         paginator = Paginator(all_list, page_size, orphans=5)
