@@ -31,8 +31,10 @@ def schedule_api():
         insta_ref = url[0].split("/p/")[1].split("/")[0]
 
         soup = BeautifulSoup(response.text, "html.parser")
+        
 
         dataUser = soup.find("title").text 
+        print(bool(dataUser))
 
         # 친구 소환
         pattern = '@([0-9a-zA-Z가-힣_]*)'
@@ -41,18 +43,24 @@ def schedule_api():
         friends = list(filter(None, friends))
 
         # 좋아요, 커멘트 수 크롤링
-        data = soup.find("meta", {"name": "description"})["content"]
+        try: 
+            data = soup.find("meta", {"name": "description"})["content"]
+        except TypeError: 
+            data = None
 
         if data is None:
             ParseError("포스팅 된 글이 없습니다.")
 
-        if 'Likes' in data: 
-            likes = data.split("Likes,")[0].strip().split(" ")[-1]
-            comments = data.split("Comments")[0].strip().split(' ')[-1]
-        else: 
-            likes = data.split("likes,")[0].strip().split(" ")[-1]
-            comments = data.split("comments")[0].strip().split(' ')[-1]
-        
+        try: 
+            if 'Likes' in data: 
+                likes = data.split("Likes,")[0].strip().split(" ")[-1]
+                comments = data.split("Comments")[0].strip().split(' ')[-1]
+            else: 
+                likes = data.split("likes,")[0].strip().split(" ")[-1]
+                comments = data.split("comments")[0].strip().split(' ')[-1]
+        except: 
+            raise ParseError
+        print(likes + "  //   " + comments)
         likes = removeComma(likes)
         comments = removeComma(comments)
 
@@ -75,12 +83,12 @@ def schedule_api():
     comments = 0
     likes = 0
     friends = 0 
+
     for insta_list in all_insta_stamp: 
         comments += insta_list.comments_cnt
         likes += insta_list.likes_cnt
         friends += insta_list.friends_cnt
     
-
     serializer = InstaStampResultSerializer(
         data = {
             "total_insta": count, 

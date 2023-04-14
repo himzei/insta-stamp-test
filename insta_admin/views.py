@@ -111,6 +111,7 @@ class AdminInstaStampList(APIView):
             "comments": comments, 
             "instaRegister": serializer.data} )
 
+
 class AdminInataStampResult(APIView): 
 
     def get(self, request):

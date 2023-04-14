@@ -207,7 +207,9 @@ class Crawling(APIView):
         stamp_url = url
         url = f"{stamp_url}?__a=1" # 크롤링할 게시물 URL
         response = requests.get(url)
+
         soup = BeautifulSoup(response.text, 'html.parser')
+
                 
         insta_ref = url.split("/p/")[1].split("/")[0]
         
