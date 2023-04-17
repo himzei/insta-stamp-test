@@ -23,18 +23,35 @@ def schedule_api():
     
     all_insta_url = InstaStampList.objects.values_list("insta_url")
     all_insta_stamp = InstaStampList.objects.all()
-    
+
+
 
     for url in all_insta_url: 
-        
         response = requests.get(url[0])
         insta_ref = url[0].split("/p/")[1].split("/")[0]
-
-        soup = BeautifulSoup(response.text, "html.parser")
         
 
-        dataUser = soup.find("title").text 
-        print(bool(dataUser))
+        try:
+            soup = BeautifulSoup(response.text, "html.parser")
+            dataUser = soup.find("title").text 
+
+        except: 
+            # 삭제했을 때는 좋아요 0
+            print(insta_ref)
+            serializer = InstaStampListSerializer(
+                get_object(insta_ref),
+                data = {
+                  "likes_cnt": int(0), 
+                  "comments_cnt": int(0), 
+                  "friends_cnt": int(0),
+                },
+                partial=True,
+            )
+            if serializer.is_valid(): 
+                serializer.save()
+            continue
+
+
 
         # 친구 소환
         pattern = '@([0-9a-zA-Z가-힣_]*)'
@@ -45,24 +62,26 @@ def schedule_api():
         # 좋아요, 커멘트 수 크롤링
         try: 
             data = soup.find("meta", {"name": "description"})["content"]
-        except TypeError: 
-            data = None
+        except: 
+            continue
 
-        if data is None:
-            ParseError("포스팅 된 글이 없습니다.")
-
+    
         try: 
             if 'Likes' in data: 
                 likes = data.split("Likes,")[0].strip().split(" ")[-1]
                 comments = data.split("Comments")[0].strip().split(' ')[-1]
-            else: 
+            elif 'likes' in data: 
                 likes = data.split("likes,")[0].strip().split(" ")[-1]
                 comments = data.split("comments")[0].strip().split(' ')[-1]
+            else: 
+                raise ParseError()
         except: 
-            raise ParseError
-        print(likes + "  //   " + comments)
+            continue
+        
+      
         likes = removeComma(likes)
         comments = removeComma(comments)
+
 
         serializer = InstaStampListSerializer(
             get_object(insta_ref),
@@ -76,8 +95,6 @@ def schedule_api():
 
         if serializer.is_valid(): 
             serializer.save()
-
-
 
     count = len(all_insta_stamp)
     comments = 0

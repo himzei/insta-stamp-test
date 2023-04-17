@@ -87,7 +87,7 @@ class AdminInstaStampList(APIView):
         except ValueError: 
             page = 1
 
-        all_insta_stamp = InstaStampList.objects.order_by("-created_at")
+        all_insta_stamp = InstaStampList.objects.all()
         page_size = 20
         count = len(all_insta_stamp)
 
