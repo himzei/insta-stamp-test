@@ -20,36 +20,10 @@ from bs4 import BeautifulSoup
 class FollowConfirm(APIView): 
     
     def get(self, request): 
-                # 인스타그램 API 엔드포인트
-                        
-              
-        access_token = '2151070271947921|PWODHLrfK340hQ7dlSE14yUSoAg'
-
-        # 팔로워 정보를 가져올 인스타그램 사용자 ID 입력
-        user_id = 'icanstudyo'
-
-        # Graph API 엔드포인트 URL 생성
-
-        url = f'https://graph.instagram.com/{user_id}/?fields=id,username,followers_count&access_token={access_token}'
-
-        # Graph API 엔드포인트에 GET 요청 보내기
-        print(url)
-
-        response = requests.get(url)
-
-        print(response)
-        # 응답에서 팔로워 정보 추출
-        # profile_data = profile_response.json()
-        # followers_data = followers_response.json()
-
-        # # 팔로워 ID 목록 저장
-        # follower_ids = []
-        # for follower in followers_data['data']:
-        #     follower_ids.append(follower['id'])
-
-        # # 팔로워 ID 목록 출력
-        # print(f'인스타그램 사용자 "{profile_data["username"]}"의 팔로워 ID 목록은 다음과 같습니다:')
-        # print(follower_ids)
+        username = sys.argv[1]
+        browser = webdriver.Chrome('./chromedriver')
+        browser.get('https://www.instagram.com/'+username)
+        browser.execute_script("document.querySelectorAll('.-nal3')[1].click();")
 
         return Response({"ok": True})     
 
