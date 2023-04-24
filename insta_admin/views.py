@@ -17,15 +17,18 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 
 
-class FollowConfirm(APIView): 
+# class FollowConfirm(APIView): 
     
-    def get(self, request): 
-        username = sys.argv[1]
-        browser = webdriver.Chrome('./chromedriver')
-        browser.get('https://www.instagram.com/'+username)
-        browser.execute_script("document.querySelectorAll('.-nal3')[1].click();")
+    # def get(self, request): 
+    #     username = "icanstudyo"
+    #     browser = webdriver.Chrome('./chromedriver')
+    #     browser.get('https://www.instagram.com/' + username)
+        
+    #     browser.execute_script("document.querySelectorAll('.-nal3')[1].click();")
+    #     time.sleep(2)
 
-        return Response({"ok": True})     
+
+    #     return Response({"ok": True})     
 
 
 class KeywordsUpdate(APIView): 

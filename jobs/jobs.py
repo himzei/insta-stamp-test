@@ -34,7 +34,7 @@ def schedule_api():
             dataUser = soup.find("title").text 
         except: 
             # 삭제했을 때는 좋아요 0
-            serializer = InstaStampListSerializer(
+            serializer_stamp = InstaStampListSerializer(
                 get_object(insta_ref),
                 data = {
                   "likes_cnt": int(0), 
@@ -43,8 +43,8 @@ def schedule_api():
                 },
                 partial=True,
             )
-            if serializer.is_valid(): 
-                serializer.save()
+            if serializer_stamp.is_valid(): 
+                serializer_stamp.save()
             continue
 
 
@@ -102,7 +102,7 @@ def schedule_api():
         likes += insta_list.likes_cnt
         friends += insta_list.friends_cnt
     
-    serializer = InstaStampResultSerializer(
+    serializer_admin = InstaStampResultSerializer(
         data = {
             "total_insta": count, 
             "total_likes": likes, 
@@ -112,8 +112,8 @@ def schedule_api():
         }
     )
 
-    if serializer.is_valid():
-        result = serializer.save()
+    if serializer_admin.is_valid():
+        result = serializer_admin.save()
         return Response(InstaStampResultSerializer(result).data)        
     else: 
         return Response(serializer.errors)
