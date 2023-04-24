@@ -40,14 +40,23 @@ class KeywordsUpdate(APIView):
         events_name = request.query_params.get("name")
 
         insta_setting = InstaSetting.objects.get(events_name=events_name)
-
         serializer = InstaSettingSerializer(insta_setting)
+
+
+
         hashtags = InstaKeywords.objects.filter(insta_setting_ref=insta_setting.pk)
 
         serializer_hashtags = KeywordsSerializer(hashtags, many=True)
 
+        hashtags_one = [item for item in hashtags if item.pk == insta_setting.hashtags_selected]
+
+        hashtags_one = str(hashtags_one[0])
+
         return Response({
-            "data": serializer.data, "hashtags": serializer_hashtags.data})
+            "hashtag": hashtags_one,
+            "data": serializer.data, 
+            "hashtags": serializer_hashtags.data, 
+            })
     
     def put(self, request):
         hashtags_selected = request.data.get("hashtag")
