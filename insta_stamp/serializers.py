@@ -16,6 +16,7 @@ class InstaStampListSerializer(serializers.ModelSerializer):
             "likes_cnt", 
             "comments_cnt", 
             "friends_cnt",
-            ) 
+            "hashtags",
+        ) 
      
         

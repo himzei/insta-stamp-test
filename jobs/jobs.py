@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.response import Response
 from insta_stamp.models import InstaStampList
+from insta_admin.models import InstaSetting
 from insta_stamp.serializers import InstaStampListSerializer
 from insta_admin.serializers import InstaStampResultSerializer
 
@@ -24,20 +25,15 @@ def schedule_api():
     all_insta_url = InstaStampList.objects.values_list("insta_url")
     all_insta_stamp = InstaStampList.objects.all()
 
-
-
     for url in all_insta_url: 
         response = requests.get(url[0])
         insta_ref = url[0].split("/p/")[1].split("/")[0]
-        
 
         try:
             soup = BeautifulSoup(response.text, "html.parser")
             dataUser = soup.find("title").text 
-
         except: 
             # 삭제했을 때는 좋아요 0
-            print(insta_ref)
             serializer = InstaStampListSerializer(
                 get_object(insta_ref),
                 data = {
@@ -50,7 +46,6 @@ def schedule_api():
             if serializer.is_valid(): 
                 serializer.save()
             continue
-
 
 
         # 친구 소환
@@ -77,11 +72,9 @@ def schedule_api():
                 raise ParseError()
         except: 
             continue
-        
       
         likes = removeComma(likes)
         comments = removeComma(comments)
-
 
         serializer = InstaStampListSerializer(
             get_object(insta_ref),
@@ -101,6 +94,9 @@ def schedule_api():
     likes = 0
     friends = 0 
 
+    current_events_name = InstaSetting.objects.get(events_name="엑스코 취업박람회")
+    hashtags_selected = current_events_name.hashtags_selected
+
     for insta_list in all_insta_stamp: 
         comments += insta_list.comments_cnt
         likes += insta_list.likes_cnt
@@ -112,6 +108,7 @@ def schedule_api():
             "total_likes": likes, 
             "total_comments": comments, 
             "total_friends": friends,
+            "hashtags": hashtags_selected,
         }
     )
 

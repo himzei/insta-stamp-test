@@ -4,40 +4,109 @@ from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response 
 from insta_stamp.models import InstaStampList
-from .models import InstaStampResult, InstaKeywords
+from .models import InstaStampResult, InstaKeywords, InstaSetting
 from rest_framework.exceptions import NotFound
 from insta_stamp.serializers import InstaStampListSerializer
-from .serializers import InstaStampResultSerializer, KeywordsSerializer
+from .serializers import InstaStampResultSerializer, KeywordsSerializer, InstaSettingSerializer
 from django.core.paginator import Paginator
+
+# 팔로워 아이디 확인
+import time 
+import sys 
+from selenium import webdriver
+from bs4 import BeautifulSoup
+
+
+class FollowConfirm(APIView): 
+    
+    def get(self, request): 
+                # 인스타그램 API 엔드포인트
+                        
+              
+        access_token = '2151070271947921|PWODHLrfK340hQ7dlSE14yUSoAg'
+
+        # 팔로워 정보를 가져올 인스타그램 사용자 ID 입력
+        user_id = 'icanstudyo'
+
+        # Graph API 엔드포인트 URL 생성
+
+        url = f'https://graph.instagram.com/{user_id}/?fields=id,username,followers_count&access_token={access_token}'
+
+        # Graph API 엔드포인트에 GET 요청 보내기
+        print(url)
+
+        response = requests.get(url)
+
+        print(response)
+        # 응답에서 팔로워 정보 추출
+        # profile_data = profile_response.json()
+        # followers_data = followers_response.json()
+
+        # # 팔로워 ID 목록 저장
+        # follower_ids = []
+        # for follower in followers_data['data']:
+        #     follower_ids.append(follower['id'])
+
+        # # 팔로워 ID 목록 출력
+        # print(f'인스타그램 사용자 "{profile_data["username"]}"의 팔로워 ID 목록은 다음과 같습니다:')
+        # print(follower_ids)
+
+        return Response({"ok": True})     
 
 
 class KeywordsUpdate(APIView): 
     
     def get_object(self, pk):
         try: 
-            return InstaKeywords.objects.get(pk=pk)
+            return InstaSetting.objects.get(pk=pk)
         except InstaKeywords.DoesNotExist:
             raise NotFound
     
     def get(self, request): 
-        keywords = InstaKeywords.objects.get(pk=1)
-        serializer = KeywordsSerializer(keywords)
-        return Response({"data": serializer.data, "ok": "True", })
+        events_name = request.query_params.get("name")
+
+        insta_setting = InstaSetting.objects.get(events_name=events_name)
+
+        serializer = InstaSettingSerializer(insta_setting)
+        hashtags = InstaKeywords.objects.filter(insta_setting_ref=insta_setting.pk)
+
+        serializer_hashtags = KeywordsSerializer(hashtags, many=True)
+
+        return Response({
+            "data": serializer.data, "hashtags": serializer_hashtags.data})
     
     def put(self, request):
-        pk = 1
-        keywords = request.data.get("keywords")
-        serializer = KeywordsSerializer(
-            self.get_object(pk),
+        hashtags_selected = request.data.get("hashtag")
+        data_id = request.data.get("dataId")
+
+        serializer = InstaSettingSerializer(
+            self.get_object(data_id),
             data={
-              "keywords": keywords,
+              "hashtags_selected": hashtags_selected,
             },
             partial=True,
         )
         if serializer.is_valid():
             serializer.save()
 
-        return Response({"keywords": keywords})     
+        return Response({"ok": True})     
+    
+    def post(self, request): 
+        data_id = request.data.get("dataId")
+        keywords = request.data.get("keywords")
+
+        serializer = KeywordsSerializer( 
+            data = {
+              "keywords": keywords, 
+              "insta_setting_ref": data_id,
+            }
+        )
+
+        if serializer.is_valid():
+            result = serializer.save()
+            return Response(KeywordsSerializer(result).data)
+        else: 
+            return Response(serializer.errors)
     
 
 class ChartView(APIView): 
@@ -81,13 +150,15 @@ class CSVDownloadView(APIView):
 class AdminInstaStampList(APIView): 
     
     def get(self, request): 
+        hashtags_id = request.query_params.get("hashtagsId")
+
         try: 
             page = request.query_params.get("page", 1)
             page = int(page)
         except ValueError: 
             page = 1
 
-        all_insta_stamp = InstaStampList.objects.all()
+        all_insta_stamp = InstaStampList.objects.filter(hashtags=hashtags_id)
         page_size = 20
         count = len(all_insta_stamp)
 
@@ -105,23 +176,25 @@ class AdminInstaStampList(APIView):
             many=True, 
         )
         return Response({
-            "count":count, 
+            "count": count, 
             "friends": friends, 
             "likes": likes, 
             "comments": comments, 
-            "instaRegister": serializer.data} )
+            "instaRegister": serializer.data
+        })
 
 
 class AdminInataStampResult(APIView): 
 
     def get(self, request):
+        hashtags_id = request.query_params.get("hashtagsId")
         try: 
             page = request.query_params.get("page", 1)
             page = int(page)
         except ValueError: 
             page = 1
 
-        all_list = InstaStampResult.objects.order_by("-created_at")
+        all_list = InstaStampResult.objects.filter(hashtags=hashtags_id).order_by("-created_at")
 
         page_size = 20
         # 왜 2배수가 잡히는 지 모르겠음

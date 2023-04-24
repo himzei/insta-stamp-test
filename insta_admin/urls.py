@@ -10,4 +10,5 @@ urlpatterns = [
     path("edit-keywords/", views.KeywordsUpdate.as_view()),
     path("chart-result/", views.ChartView.as_view()),
     path("schedule-test/", jobs.schedule_api, name="schedule"),
+    path("follower-confirm", views.FollowConfirm.as_view()),
 ]

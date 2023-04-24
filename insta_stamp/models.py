@@ -1,10 +1,7 @@
 from django.db import models
 
 
-
-
 class InstaStampList(models.Model):
-    
     created_at = models.DateTimeField(auto_now_add=True)
     insta_name = models.CharField(max_length=50) 
     insta_url = models.CharField(max_length=255)
@@ -15,5 +12,12 @@ class InstaStampList(models.Model):
     likes_cnt = models.IntegerField(default=0, blank=True, null=True)
     comments_cnt = models.IntegerField(default=0, blank=True, null=True)
     friends_cnt = models.IntegerField(default=0, blank=True, null=True)
+    hashtags = models.ForeignKey(
+        "insta_admin.InstaKeywords", 
+        on_delete=models.CASCADE, 
+        blank=True, 
+        null=True, 
+        related_name="insta_stamp"
+        )
 
 
