@@ -77,7 +77,12 @@ class DataForceInsert(APIView):
 class RankingList(APIView): 
     
     def get(self, request): 
-        data = InstaStampList.objects.all().order_by('-likes_cnt')[:10]
+        # 포론트에서 행사명을 받아온다 
+        # 행사명으로 현재 선택되어진 해시택크 id를 구한다
+        events_name = request.query_params.get("name")
+        events = InstaSetting.objects.get(events_name=events_name)
+
+        data = InstaStampList.objects.filter(hashtags=events.pk).order_by('-likes_cnt')[:10]
         serializer = InstaStampListSerializer(
             data, 
             many=True,
