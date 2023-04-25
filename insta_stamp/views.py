@@ -10,7 +10,7 @@ from rest_framework import status
 from bs4 import BeautifulSoup
 from .serializers import InstaStampListSerializer
 from .models import InstaStampList
-from insta_admin.models import InstaKeywords
+from insta_admin.models import InstaKeywords, InstaSetting
 from insta_admin.serializers import KeywordsSerializer
 
 import pandas as pd 
@@ -195,9 +195,17 @@ class Crawling(APIView):
     def post(self, request): 
         
         url = request.data.get("url")
+        events_name = request.data.get("ADM_EVENTS_NAME")
+        print(url, events_name)
         stamp = False
 
-        db_keywords = InstaKeywords.objects.get(pk=1)
+        # 넘어온 이벤트 이름 값으로 
+        # 해시태그 확인
+        events = InstaSetting.objects.get(events_name=events_name)
+
+        
+        db_keywords = InstaKeywords.objects.get(pk=events.hashtags_selected)
+       
         serializer_keywords = KeywordsSerializer(db_keywords)
 
         keywords = serializer_keywords.data.get("keywords").split(",")
@@ -240,6 +248,7 @@ class Crawling(APIView):
               "insta_date": insta_date,
               "insta_stamp": stamp, 
               "insta_ref": insta_ref,
+              "hashtags": events.hashtags_selected,
             }, 
         )
         if serializer.is_valid(): 

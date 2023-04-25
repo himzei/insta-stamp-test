@@ -17,18 +17,7 @@ from selenium import webdriver
 from bs4 import BeautifulSoup
 
 
-# class FollowConfirm(APIView): 
-    
-    # def get(self, request): 
-    #     username = "icanstudyo"
-    #     browser = webdriver.Chrome('./chromedriver')
-    #     browser.get('https://www.instagram.com/' + username)
-        
-    #     browser.execute_script("document.querySelectorAll('.-nal3')[1].click();")
-    #     time.sleep(2)
 
-
-    #     return Response({"ok": True})     
 
 
 class KeywordsUpdate(APIView): 
@@ -45,12 +34,8 @@ class KeywordsUpdate(APIView):
         insta_setting = InstaSetting.objects.get(events_name=events_name)
         serializer = InstaSettingSerializer(insta_setting)
 
-
-
         hashtags = InstaKeywords.objects.filter(insta_setting_ref=insta_setting.pk)
-
         serializer_hashtags = KeywordsSerializer(hashtags, many=True)
-
         hashtags_one = [item for item in hashtags if item.pk == insta_setting.hashtags_selected]
 
         hashtags_one = str(hashtags_one[0])
@@ -75,11 +60,29 @@ class KeywordsUpdate(APIView):
         if serializer.is_valid():
             serializer.save()
 
-        return Response({"ok": True})     
+        return Response({"ok": True})   
+
+    def arrays_equal(self, arr1, arr2): 
+        if len(arr1) != len(arr2): 
+            return False 
+
+        for i in range(len(arr1)):
+            if arr1[i] != arr2[i]:
+                return False
+
+        return True
+      
     
     def post(self, request): 
         data_id = request.data.get("dataId")
         keywords = request.data.get("keywords")
+
+        existed_hashtags = InstaKeywords.objects.values('keywords').filter(insta_setting_ref=data_id)
+        
+        
+        print(list(existed_hashtags))
+
+
 
         serializer = KeywordsSerializer( 
             data = {
