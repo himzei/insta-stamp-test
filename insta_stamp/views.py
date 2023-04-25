@@ -82,7 +82,8 @@ class RankingList(APIView):
         events_name = request.query_params.get("name")
         events = InstaSetting.objects.get(events_name=events_name)
 
-        data = InstaStampList.objects.filter(hashtags=events.pk).order_by('-likes_cnt')[:10]
+
+        data = InstaStampList.objects.filter(hashtags=events.hashtags_selected).order_by('-likes_cnt')[:10]
         serializer = InstaStampListSerializer(
             data, 
             many=True,
