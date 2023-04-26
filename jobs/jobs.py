@@ -94,7 +94,7 @@ def schedule_api():
     likes = 0
     friends = 0 
 
-    current_events_name = InstaSetting.objects.get(events_name="엑스코 취업박람회")
+    current_events_name = InstaSetting.objects.get(events_name="성주 나랑놀장 별꽃장터")
     hashtags_selected = current_events_name.hashtags_selected
 
     for insta_list in all_insta_stamp: 
